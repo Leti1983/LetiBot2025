@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LetiBot Integrado</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0; /* Asegurarse de que no haya márgenes por defecto */
+            padding-bottom: 500px; /* Solo para dar espacio y ver el bot fijo abajo */
+        }
+
+        .chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            max-width: 90%;
+            background-color: #FFFFFF; /* Fondo general del widget blanco */
+            border: 2px solid #192A56; /* Borde azul marino */
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Para que los bordes redondeados se apliquen bien */
+            z-index: 1000; /* Para que esté por encima de otros elementos */
+        }
+
+        .chat-header {
+            background-color: #192A56; /* Cabecera azul marino */
+            color: #FFFFFF; /* Texto de cabecera blanco */
+            padding: 15px;
+            text-align: center;
+            font-size: 1.2em;
+            border-bottom: 1px solid #DAA520; /* Línea divisoria dorada */
+        }
+
+        .chat-header .bot-name {
+            font-weight: bold;
+            color: #DAA520; /* Nombre del Bot en dorado */
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            padding: 15px;
+            height: 300px;
+            overflow-y: auto;
+            background-color: #f4f4f8; /* Fondo del área de mensajes gris muy claro */
+        }
+
+        .message-container { /* Contenedor para mensaje + opciones si las hay */
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+        }
+
+        .message-container.user {
+            align-items: flex-end;
+        }
+
+        .message-container.bot {
+            align-items: flex-start;
+        }
+
+        .message {
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 85%;
+            line-height: 1.4;
+            word-wrap: break-word; /* Para que las palabras largas no rompan el diseño */
+            margin-bottom: 5px; /* Espacio si hay opciones debajo */
+            white-space: pre-wrap; /* Para que \n funcione en los mensajes del bot */
+        }
+
+        .message.user {
+            background-color: #192A56; /* Mensajes del usuario azul marino */
+            color: #FFFFFF; /* Texto blanco */
+            align-self: flex-end; /* Ya está en message-container.user pero por si acaso */
+            margin-left: auto; /* Empuja a la derecha */
+        }
+
+        .message.bot {
+            background-color: #FFFFFF; /* Mensajes del bot fondo blanco */
+            color: #192A56; /* Texto azul marino */
+            border: 1px solid #DAA520; /* Borde dorado */
+            align-self: flex-start; /* Ya está en message-container.bot */
+            margin-right: auto; /* Empuja a la izquierda */
+        }
+
+        .chat-input-area {
+            display: flex;
+            padding: 10px;
+            background-color: #e9e9eb; /* Fondo del área de input gris claro */
+            border-top: 1px solid #DAA520; /* Línea divisoria dorada */
+        }
+
+        .chat-input-area input[type="text"] {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #192A56; /* Borde del input azul marino */
+            border-radius: 20px;
+            margin-right: 10px;
+            outline: none;
+            color: #192A56; /* Texto del input azul marino */
+        }
+
+        .chat-input-area input[type="text"]::placeholder {
+            color: #6c757d; /* Color del placeholder */
+        }
+
+        .chat-input-area button { /* Botón de Enviar */
+            background-color: #DAA520; /* Fondo dorado */
+            color: #192A56; /* Texto azul marino */
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .chat-input-area button:hover {
+            background-color: #B8860B; /* Dorado más oscuro al pasar el mouse */
+            color: #FFFFFF;
+        }
+
+        .chat-options {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 5px 0px 0px 0px; /* Espacio arriba de los botones de opción */
+            /* La alineación se hereda de .message-container.bot que es align-items: flex-start */
+        }
+
+        .chat-options button { /* Botones de opciones */
+            background-color: #FFFFFF; /* Fondo blanco */
+            color: #192A56; /* Texto azul marino */
+            border: 1px solid #192A56; /* Borde azul marino */
+            border-radius: 15px;
+            padding: 8px 12px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .chat-options button:hover {
+            background-color: #192A56; /* Fondo azul marino al pasar el mouse */
+            color: #FFFFFF; /* Texto blanco */
+            border-color: #DAA520; /* Borde dorado */
+        }
+
+        .chat-options button:disabled {
+            background-color: #d1d1d1; /* Fondo gris para botones deshabilitados */
+            color: #707070; /* Texto gris */
+            border-color: #b0b0b0;
+            cursor: default;
+        }
+        .chat-options button:disabled:hover { /* Evitar cambio de hover en deshabilitados */
+            background-color: #d1d1d1;
+            color: #707070;
+            border-color: #b0b0b0;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Página de Ejemplo de María Leticia</h1>
+    <p>Este es el contenido de tu página web. LetiBot aparecerá en la esquina inferior derecha.</p>
+    <p>Puedes agregar más contenido aquí...</p>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+    <p>Más párrafos para probar el scroll y la posición fija del bot.</p>
+
+
+    <div class="chat-widget">
+        <div class="chat-header">
+            <span class="bot-name">LetiBot</span> 🤖
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            </div>
+        <div class="chat-input-area">
+            <input type="text" id="userInput" placeholder="Escribe tu mensaje...">
+            <button id="sendButton">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInputField = document.getElementById('userInput');
+        const sendButton = document.getElementById('sendButton');
+
+        const initialBotMessage = "¡Bienvenida/o! Soy LetiBot, tu asistente virtual. ¿Cómo puedo ayudarte hoy?";
+        const initialOptions = ["Coaching", "Tecnología Educativa", "Capacitaciones"];
+        const contactOption = "¿Querés agendar una consulta (gratuita)?";
+        const mainMenuOption = "Volver al menú principal";
+
+        // Enlaces a los formularios
+        const formLinkCoachingTecEdu = "https://docs.google.com/forms/d/e/1FAIpQLSdW8Uu4Di3ST_pUt31rJYYMgkRuHgnpQXXVvoVojC3Oks4NYA/viewform?usp=header";
+        const formLinkCapacitaciones = "https://docs.google.com/forms/d/e/1FAIpQLSdwD1MKk2gTlVaHGYSX1Qe7gfm_qCceV_ILRcASnu8bNVo2Ww/viewform?usp=header";
+
+        let currentContext = null; // Para rastrear el tema actual de la conversación
+
+        // Función para mostrar un mensaje en el chat
+        function displayMessage(text, sender) {
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message-container', sender); // 'user' o 'bot'
+
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+            messageDiv.style.whiteSpace = "pre-wrap"; // Para que \n funcione
+            messageDiv.textContent = text;
+            
+            messageContainer.appendChild(messageDiv);
+            chatMessages.appendChild(messageContainer);
+            scrollToBottom();
+            return messageContainer; // Devolvemos el contenedor para añadir opciones si es necesario
+        }
+
+        // Función para mostrar opciones como botones
+        function displayOptions(optionsArray, parentContainer) {
+            const optionsDiv = document.createElement('div');
+            optionsDiv.classList.add('chat-options');
+
+            optionsArray.forEach(optionText => {
+                const button = document.createElement('button');
+                button.textContent = optionText;
+                button.onclick = () => {
+                    handleOptionClick(optionText);
+                };
+                optionsDiv.appendChild(button);
+            });
+            
+            if (parentContainer) {
+                parentContainer.appendChild(optionsDiv); // Añadir opciones debajo del mensaje del bot
+            } else {
+                // Si no hay parentContainer (raro en este flujo, pero como fallback)
+                chatMessages.appendChild(optionsDiv);
+            }
+            scrollToBottom();
+        }
+
+        // Función para manejar el clic en una opción
+        function handleOptionClick(optionText) {
+            displayMessage(optionText, 'user'); // Muestra la opción seleccionada como mensaje del usuario
+            disablePreviousOptions(); // Deshabilita botones de opciones anteriores
+            processUserMessage(optionText); // Procesa la opción como un mensaje normal
+        }
+
+        // Función para deshabilitar botones de opciones anteriores
+        function disablePreviousOptions() {
+            const allOptionButtons = chatMessages.querySelectorAll('.chat-options button');
+            allOptionButtons.forEach(button => {
+                if (!button.disabled) { // Solo deshabilita si no lo está ya
+                    button.disabled = true;
+                    // Los estilos para :disabled ya están en el CSS
+                }
+            });
+        }
+
+        // Función para que el bot procese el mensaje y responda
+        function processUserMessage(messageText) {
+            let botResponse = "Lo siento, no estoy seguro de cómo responder a eso. Intenta con una de las opciones del menú principal.";
+            let optionsToShow = [];
+            const lowerCaseMessage = messageText.toLowerCase();
+
+            if (lowerCaseMessage.includes("hola") || lowerCaseMessage.includes("saludos") || messageText === mainMenuOption) {
+                botResponse = messageText === mainMenuOption ? "¿En qué más puedo ayudarte?" : "¡Hola! ¿En qué puedo ayudarte?";
+                optionsToShow = initialOptions;
+                currentContext = null; // Resetear contexto
+            } else if (messageText === "Coaching") {
+                botResponse = "Sobre Coaching:\n\n" +
+                              "🔹 **Coaching Vocacional:** Te ayudo a explorar tus intereses, habilidades y valores para descubrir una vocación o carrera que te apasione y se alinee con tu propósito.\n\n" +
+                              "🔹 **Coaching Educativo:** Acompaño a estudiantes, docentes y familias a potenciar el aprendizaje, desarrollar habilidades socioemocionales y alcanzar metas académicas y personales dentro del ámbito educativo.";
+                currentContext = "coaching_te";
+                optionsToShow = [contactOption, mainMenuOption];
+            } else if (messageText === "Tecnología Educativa") {
+                botResponse = "La **Tecnología Educativa (EdTech)** se enfoca en integrar herramientas, plataformas y recursos digitales en los procesos de enseñanza y aprendizaje.\n\n" +
+                              "Está dirigida a:\n" +
+                              "👤 **Directivos:** Para la gestión institucional, innovación y toma de decisiones estratégicas.\n" +
+                              "👨‍🏫 **Docentes:** Para enriquecer sus prácticas pedagógicas, crear contenido interactivo y facilitar el seguimiento del alumnado.\n" +
+                              "🎓 **Alumnos:** Para promover un aprendizaje más participativo, personalizado y adaptado a las competencias del siglo XXI.";
+                currentContext = "coaching_te";
+                optionsToShow = [contactOption, mainMenuOption];
+            } else if (messageText === "Capacitaciones") {
+                botResponse = "Ofrezco capacitaciones a medida para potenciar tus habilidades y las de tu equipo. Puedes elegir entre las siguientes áreas o consultarme por una necesidad específica:";
+                currentContext = null; 
+                optionsToShow = ["Liderazgo Transformador", "Coaching para Equipos y Ejecutivos", "Dominio de Herramientas Digitales", mainMenuOption];
+            } else if (messageText === "Liderazgo Transformador") {
+                botResponse = "La capacitación en **Liderazgo Transformador** se enfoca en desarrollar líderes que inspiren, motiven y guíen a sus equipos hacia la consecución de objetivos y la innovación, fomentando un ambiente de crecimiento y colaboración.";
+                currentContext = "capacitaciones";
+                optionsToShow = [contactOption, mainMenuOption];
+            } else if (messageText === "Coaching para Equipos y Ejecutivos") {
+                botResponse = "El **Coaching para Equipos y Ejecutivos** busca mejorar la cohesión, la comunicación y el rendimiento de los equipos de trabajo, así como potenciar las habilidades de liderazgo y gestión de los directivos para alcanzar resultados extraordinarios.";
+                currentContext = "capacitaciones";
+                optionsToShow = [contactOption, mainMenuOption];
+            } else if (messageText === "Dominio de Herramientas Digitales") {
+                botResponse = "En la capacitación de **Dominio de Herramientas Digitales**, aprenderás a utilizar eficazmente una variedad de software y plataformas tecnológicas para optimizar tu trabajo, mejorar la productividad y facilitar la colaboración en entornos digitales.";
+                currentContext = "capacitaciones";
+                optionsToShow = [contactOption, mainMenuOption];
+            } else if (messageText === contactOption) {
+                if (currentContext === "coaching_te") {
+                    botResponse = `¡Excelente! Podés agendar tu consulta gratuita para Coaching o Tecnología Educativa completando el siguiente formulario:\n\n${formLinkCoachingTecEdu}\n\nCopiá y pegá el enlace en tu navegador si no se abre automáticamente.`;
+                } else if (currentContext === "capacitaciones") {
+                    botResponse = `¡Bárbaro! Podés solicitar más información o una consulta para Capacitaciones a través de este formulario:\n\n${formLinkCapacitaciones}\n\nCopiá y pegá el enlace en tu navegador si no se abre automáticamente.`;
+                } else {
+                    botResponse = "Para poder dirigirte al formulario correcto, por favor, primero seleccioná un área de interés (Coaching, Tecnología Educativa o una Capacitación específica) del menú principal.";
+                }
+                optionsToShow = [mainMenuOption];
+            } else {
+                botResponse = "No he entendido bien tu solicitud. ¿Podrías intentarlo de nuevo o seleccionar una opción del menú?";
+                optionsToShow = initialOptions;
+                currentContext = null; 
+            }
+
+            setTimeout(() => {
+                const botMessageContainer = displayMessage(botResponse, 'bot');
+                if (optionsToShow.length > 0) {
+                    displayOptions(optionsToShow, botMessageContainer);
+                }
+            }, 800); // Pequeña demora para simular respuesta del bot
+        }
+
+        // Función para enviar mensaje desde el input del usuario
+        function sendUserMessage() {
+            const messageText = userInputField.value.trim();
+            if (messageText !== "") {
+                disablePreviousOptions(); // Deshabilitar opciones si el usuario escribe manualmente
+                displayMessage(messageText, 'user');
+                userInputField.value = ""; // Limpiar el input
+                processUserMessage(messageText);
+            }
+        }
+
+        // Scroll automático hacia abajo
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Event listener para el botón de enviar
+        sendButton.addEventListener('click', sendUserMessage);
+
+        // Permitir enviar mensaje con la tecla Enter en el campo de input
+        userInputField.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendUserMessage();
+            }
+        });
+
+        // Mensaje inicial del bot y opciones al cargar la página
+        window.onload = () => {
+            const botWelcomeContainer = displayMessage(initialBotMessage, 'bot');
+            displayOptions(initialOptions, botWelcomeContainer);
+        };
+    </script>
+
+</body>
+</html>
